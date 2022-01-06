@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <link rel="stylesheet" href="//code.jquery.com/ui/1.13.0/themes/base/jquery-ui.css">
+    <link rel="stylesheet" href="/resources/demos/style.css">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/lodash.js/0.10.0/lodash.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.js"></script>
+    <script src="https://code.jquery.com/ui/1.13.0/jquery-ui.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script>
+
+    <style>
+        .myDiv {
+            font-weight: bold
+        }
+    </style>
+</head>
+
+<body>
+    <div class="row" style="height:70px;"> </div>
+    <div class="row">
+        <div class="col-md-3"> </div>
+        <p style="font-size: small;">Note: Only Projects added in Reflections can be updated</p>
+    </div>
+    <div class="row" style="height:20px;"> </div>
+    <div class="row">
+        <div class="col-md-2"> </div>
+        <div class="col-md-10">
+
+            <div class="row">
+
+                <div class="col-md-2 myDiv"> Project </div>
+                <div class="col-md-8">
+                    <select id="selProj" onkeyup="filterFunction()">
+                        <option value="">-- Select Project--</option>
+                    </select>
+                </div>
+            </div>
+            <div class="row" style="height:15px;"></div>
+            <div class="row">
+                <div class="col-md-2 myDiv"> Iteration </div>
+                <div class="col-md-5" style="width: 30px;">
+                    <select  id="selIteration">
+                        <option value="">-- Select Iteration--</option>
+                    </select>
+                </div>
+            </div>
+            <!-- <div class="row">
+    <div class="col-xs-9 col-md-7">.col-xs-9 .col-md-7</div>
+    <div class="col-xs-3 col-md-5">.col-xs-3 .col-md-5</div>
+  </div> -->
+            <div class="row" style="height:15px;"></div>
+            <div class="row">
+                <div class="col-md-2 myDiv"> Start Date: </div>
+                <div class="col-md-2" ">
+                        <input type=" text" id="dtpStartDisabled">
+                </div>
+                <div class="col-md-5">
+                    <p style="color: rgb(247, 58, 52);">Date Format: mm/dd/yyyy</p>
+                </div>
+            </div>
+            <div class="row" style="height:15px;"></div>
+            <div class="row">
+                <div class="col-md-2 myDiv"> End Date: </div>
+                <div class="col-md-8">
+                    <input type="text" id="dtpEndDisabled">
+                </div>
+            </div>
+            <div class="row" style="height:15px;"></div>
+            <div class="row">
+                <div class="col-md-2 myDiv">Actual Start Date: </div>
+                <div class="col-md-3">
+                    <input type="text" id="dtpstartDate">
+                </div>
+
+            </div>
+            <div class="row" style="height:15px;"></div>
+            <div class="row">
+                <div class="col-md-2 myDiv">Actual End Date: </div>
+                <div class="col-md-8">
+                    <input type="text" id="dtpEndDate">
+                </div>
+            </div>
+            <div class="row" style="height:30px;"></div>
+            <div class="row">
+                <div class="col-md-4"></div>
+                <button onclick="onUpdate()">Update</button>
+            </div>
+        </div>
+    </div>
+</body>
+
+<script>
+    var projDetails;
+    var projectIter;
+    var IterDetails;
+    $(document).ready(function () {
+        getdata(true);
+        $("#dtpstartDate").datepicker();
+        $("#dtpEndDate").datepicker();
+        $("#dtpStartDisabled").datepicker({ disabled: true });
+        $("#dtpEndDisabled").datepicker({ disabled: true });
+    });
+
+    function getdata(IsUpdatedrp) {
+        var url = "https://prod-10.centralindia.logic.azure.com/workflows/0ae8bf82520d4f3296f4fa4e8179fc2d/triggers/manual/paths/invoke?api-version=2016-06-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=WAdihKwf8pkCwY2g6r2CjhR8hrDYesI7H5OIZrNppdk";
+        console.log('projDetails');
+        $.get(url, function (data) {
+            console.log('url');
+            projDetails = data.ResultSets;
+            console.log(projDetails);
+            if (IsUpdatedrp) {
+                UpdateProjectDropDown();
+            }
+        });
+
+    }
+
+    function UpdateProjectDropDown() {
+        const unique = [...new Map(projDetails.Table1.map((x) => [x['Project_Id'], x])).values()];
+        unique.sort(function (a, b) {
+            return a.project_name.localeCompare(b.project_name);
+        });
+        $.each(unique, function (index, value) {
+            $('#selProj').append('<option value="' + value.Project_Id + '">' + value.project_name + '</option>');
+        });
+    }
+
+    function getIteration(proj_Id) {
+        console.log(projDetails.Table1.filter(n => n.Project_Id == proj_Id));
+        return projDetails.Table1.filter(n => n.Project_Id == proj_Id);
+    }
+
+    $('#selProj').change(function () {
+        projectIter = getIteration(this.options[this.selectedIndex].value);
+        resetToDefaultExpectProjDrp();
+        projectIter.sort(function (a, b) {
+            return b.Iteration_Number - a.Iteration_Number;
+        });
+        $('#selIteration').empty();
+        $('#selIteration').append('<option value="' + 0 + '" selected >' + "-- Select Iteration--" + '</option>');
+        $.each(projectIter, function (index, value) {
+            $('#selIteration').append('<option value="' + value.Iteration_Number + '">' + value.Iteration_Number + '</option>');
+        });
+    });
+
+    $('#selIteration').change(function () {
+        IterDetails = projectIter.filter(n => n.Iteration_Number == this.options[this.selectedIndex].value);
+        $("#dtpstartDate").datepicker("setDate", convertDbFormat(IterDetails[0].Actual_Start_Date, false));
+        $("#dtpEndDate").datepicker("setDate", convertDbFormat(IterDetails[0].Actual_End_Date, false));
+        $("#dtpStartDisabled").datepicker("setDate", convertDbFormat(IterDetails[0].Start_Date, false));
+        $("#dtpEndDisabled").datepicker("setDate", convertDbFormat(IterDetails[0].End_Date, false));
+    });
+
+    function convertDbFormat(inputFormat, IsDbFormat) {
+        function pad(s) { return (s < 10) ? '0' + s : s; }
+        var d = new Date(inputFormat)
+        if (IsDbFormat)
+            return [pad(d.getFullYear()), pad(d.getMonth() + 1), pad(d.getDate())].join('-')
+        else
+            return [pad(d.getMonth() + 1), pad(d.getDate()), d.getFullYear()].join('/')
+    }
+
+    function onUpdate() {
+        console.log($("#dtpstartDate").datepicker("getDate"));
+        var startdate = $("#dtpstartDate").datepicker("getDate");
+        var enddate = $("#dtpEndDate").datepicker("getDate");
+        if (startdate == null || enddate == null) {
+            alert("Startdate/Enddate is Mandatory");
+            return;
+        }
+        else if (startdate > enddate) {
+            alert("EndDate must be greater/equalto StartDate");
+            return;
+        }
+        $.ajax({
+            type: "POST",
+            url: "https://prod-21.centralindia.logic.azure.com:443/workflows/abcf7aa19f4545b3ac2e7d116d92fc6a/triggers/manual/paths/invoke?api-version=2016-06-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=tpSeWVUdcSYIy2Dj53gR2TZFJDrv0Hq0q2_N0xh8FTo",
+            data: JSON.stringify({ "id": IterDetails[0].id.toString(), "Actual_Start_Date": convertDbFormat(startdate, true), "Actual_End_Date": convertDbFormat(enddate, true) }),
+            contentType: "application/json",
+            success: function (result) {
+                alert("Updated Successfully");
+                resetAllToDefault();
+                getdata(false);
+            },
+            error: function (result, status) {
+                alert("Error while saving. Please try again");
+            }
+        });
+    }
+
+    function resetAllToDefault() {
+        resetProjDropDownToDefault();
+        resetToDefaultExpectProjDrp();
+    }
+
+    function resetProjDropDownToDefault() {
+        $('#selProj option').prop('selected', function () {
+            return this.defaultSelected;
+        });
+    }
+
+    function resetToDefaultExpectProjDrp() {
+
+        $('#selIteration option').prop('selected', function () {
+            return this.defaultSelected;
+        });
+
+        $("#dtpstartDate").datepicker("setDate", "");
+        $("#dtpEndDate").datepicker("setDate", "");
+        $("#dtpStartDisabled").datepicker("setDate", "");
+        $("#dtpEndDisabled").datepicker("setDate", "");
+    }
+
+</script>
+
+</html>
